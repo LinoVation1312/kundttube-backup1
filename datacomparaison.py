@@ -84,21 +84,15 @@ if uploaded_file_2 is not None:
     thickness_index_2 = np.where(thicknesses_2 == thickness_selected)[0][0]
     density_index_2 = np.where(densities_2 == density_selected)[0][0]
 
+fig = None  # Initialize fig to None to prevent errors
+
 # Extract absorption data for the selected frequency, thickness, and density
 if uploaded_file_1 and uploaded_file_2:
     absorption_curve_1 = absorption_data_1[:, thickness_index_1 * len(densities_1) + density_index_1]
     absorption_curve_2 = absorption_data_2[:, thickness_index_2 * len(densities_2) + density_index_2]
-else:
-    # If a file is missing, display a "not happy" emoji instead of the graph
-    st.warning("Please upload your Excel files. Default data is being used.")
-    fig, ax = plt.subplots(figsize=(10, 8))
-    ax.text(0.5, 0.5, "\ud83d\ude1e\nPlease upload Excel files", fontsize=30, ha='center', va='center')
-    ax.axis('off')  # Disable axes
-    st.pyplot(fig)
 
-# Try plotting the absorption curves
-try:
-    if uploaded_file_1 and uploaded_file_2:
+    # Try plotting the absorption curves
+    try:
         fig, ax = plt.subplots(figsize=(10, 8))
 
         # Change the background color of the graph
@@ -122,12 +116,14 @@ try:
         # Display the graph in Streamlit
         st.pyplot(fig)
 
-except ValueError as e:
-    # Handle the error without displaying it intrusively
-    st.markdown(
-        f'<p style="position: fixed; bottom: 10px; right: 10px; font-size: 12px; color: red;">Dimension error: {str(e)}</p>',
-        unsafe_allow_html=True
-    )
+    except ValueError as e:
+        # Handle the error without displaying it intrusively
+        st.markdown(
+            f'<p style="position: fixed; bottom: 10px; right: 10px; font-size: 12px; color: red;">Dimension error: {str(e)}</p>',
+            unsafe_allow_html=True
+        )
+else:
+    st.warning("Please upload your Excel files to view the graph.")
 
 # Function to save the graph as a PDF
 def save_as_pdf(fig):
@@ -135,14 +131,16 @@ def save_as_pdf(fig):
     Save the current graph as a PDF and return it as a downloadable file.
     """
     pdf_buffer = BytesIO()
-    fig.savefig(pdf_buffer, format="pdf")
-    pdf_buffer.seek(0)
+    if fig:
+        fig.savefig(pdf_buffer, format="pdf")
+        pdf_buffer.seek(0)
     return pdf_buffer
 
-# Add a download button
-st.download_button(
-    label="Download Comparison as PDF",
-    data=save_as_pdf(fig),
-    file_name="acoustic_comparison.pdf",
-    mime="application/pdf"
-)
+# Add a download button only if the figure exists
+if fig:
+    st.download_button(
+        label="Download Comparison as PDF",
+        data=save_as_pdf(fig),
+        file_name="acoustic_comparison.pdf",
+        mime="application/pdf"
+    )
