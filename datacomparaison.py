@@ -5,54 +5,54 @@ import streamlit as st
 from io import BytesIO
 import os
 
-# Configuration de l'application Streamlit
+# Streamlit application configuration
 st.set_page_config(
-    page_title="Analyse acoustique",
-    page_icon=":chart_with_upwards_trend:",  # Icône choisie pour l'application
+    page_title="Acoustic Analysis",
+    page_icon=":chart_with_upwards_trend:",  # Icon chosen for the application
     layout="centered",
     initial_sidebar_state="expanded"
 )
 
-# Configuration du titre et du sidebar
-st.title("Outil interactif d'analyse acoustique")
-st.sidebar.title("Configuration des paramètres")
+# Title and sidebar configuration
+st.title("Interactive Acoustic Analysis Tool")
+st.sidebar.title("Parameter Configuration")
 
-# Ajout d'une fonctionnalité pour charger deux fichiers Excel
-uploaded_file_1 = st.sidebar.file_uploader("Télécharger le premier fichier Excel", type=["xlsx"])
-uploaded_file_2 = st.sidebar.file_uploader("Télécharger le deuxième fichier Excel", type=["xlsx"])
+# Feature to upload two Excel files
+uploaded_file_1 = st.sidebar.file_uploader("Upload the first Excel file", type=["xlsx"])
+uploaded_file_2 = st.sidebar.file_uploader("Upload the second Excel file", type=["xlsx"])
 
 def load_data_from_excel(file):
     """
-    Charge les données depuis un fichier Excel.
+    Load data from an Excel file.
     """
-    # Charger le fichier Excel
-    df = pd.read_excel(file, sheet_name=0, header=0)  # Lire la première feuille (avec titre à la première ligne)
+    # Load the Excel file
+    df = pd.read_excel(file, sheet_name=0, header=0)  # Read the first sheet (with titles in the first row)
     
-    # Extraire les fréquences (colonne A)
-    frequencies = df.iloc[:, 0].dropna().values  # Fréquences dans la première colonne, ignorer les valeurs vides
+    # Extract frequencies (column A)
+    frequencies = df.iloc[:, 0].dropna().values  # Frequencies in the first column, ignoring empty values
     
-    # Extraire les données d'absorption (toutes les autres colonnes)
-    absorption_data = df.iloc[:, 1:].dropna(axis=0, how="all").values  # Retirer les lignes où toutes les valeurs sont NaN
+    # Extract absorption data (all other columns)
+    absorption_data = df.iloc[:, 1:].dropna(axis=0, how="all").values  # Remove rows where all values are NaN
     
-    # Définir les épaisseurs et densités (exemple, à adapter selon votre fichier)
-    thicknesses = np.array([10, 20, 30])  # Épaisseurs 10, 20, 30 mm
-    densities = np.array([75, 110, 150])  # Densités 75, 110, 150 kg/m³
+    # Define thicknesses and densities (example, adapt according to your file)
+    thicknesses = np.array([10, 20, 30])  # Thicknesses: 10, 20, 30 mm
+    densities = np.array([75, 110, 150])  # Densities: 75, 110, 150 kg/m³
     
     return frequencies, thicknesses, densities, absorption_data
 
-# Vérifier si les fichiers ont été téléchargés
+# Check if files have been uploaded
 if uploaded_file_1 is not None and uploaded_file_2 is not None:
-    # Charger les données depuis les deux fichiers Excel
+    # Load data from the two Excel files
     frequencies_1, thicknesses_1, densities_1, absorption_data_1 = load_data_from_excel(uploaded_file_1)
     frequencies_2, thicknesses_2, densities_2, absorption_data_2 = load_data_from_excel(uploaded_file_2)
     
-    # Extraire les noms des fichiers sans l'extension '.xlsx'
+    # Extract file names without the '.xlsx' extension
     file_name_1 = os.path.splitext(uploaded_file_1.name)[0]
     file_name_2 = os.path.splitext(uploaded_file_2.name)[0]
 else:
-    # Utilisation des données par défaut si un ou aucun fichier n'est téléchargé
-    file_name_1 = "Fichier_1"
-    file_name_2 = "Fichier_2"
+    # Use default data if one or both files are not uploaded
+    file_name_1 = "File_1"
+    file_name_2 = "File_2"
     frequencies_1 = frequencies_2 = np.array([100, 500, 1000, 2000])
     thicknesses_1 = thicknesses_2 = np.array([10, 20, 30])
     densities_1 = densities_2 = np.array([75, 110, 150])
@@ -62,20 +62,20 @@ else:
         [0.3, 0.5, 0.7, 0.9]
     ])
 
-# Paramètres personnalisés via l'interface
+# Custom parameters via the interface
 thickness_selected = st.sidebar.selectbox(
-    "Choisissez l'épaisseur (mm)",
+    "Choose thickness (mm)",
     options=[10, 20, 30],
     index=0
 )
 
 density_selected = st.sidebar.selectbox(
-    "Choisissez la densité (kg/m³)",
+    "Choose density (kg/m³)",
     options=[75, 110, 150],
     index=0
 )
 
-# Initialisation des variables d'index seulement si les fichiers sont chargés
+# Initialize index variables only if files are uploaded
 if uploaded_file_1 is not None:
     thickness_index_1 = np.where(thicknesses_1 == thickness_selected)[0][0]
     density_index_1 = np.where(densities_1 == density_selected)[0][0]
@@ -84,65 +84,65 @@ if uploaded_file_2 is not None:
     thickness_index_2 = np.where(thicknesses_2 == thickness_selected)[0][0]
     density_index_2 = np.where(densities_2 == density_selected)[0][0]
 
-# Extraire les données d'absorption pour la fréquence sélectionnée et l'épaisseur et densité choisies
+# Extract absorption data for the selected frequency, thickness, and density
 if uploaded_file_1 and uploaded_file_2:
     absorption_curve_1 = absorption_data_1[:, thickness_index_1 * len(densities_1) + density_index_1]
     absorption_curve_2 = absorption_data_2[:, thickness_index_2 * len(densities_2) + density_index_2]
 else:
-    # Si un fichier est manquant, afficher un emoji "pas content" à la place du graphique
-    st.warning("Veuillez charger vos fichiers Excel. Les données 'par défaut' sont utilisées.")
+    # If a file is missing, display a "not happy" emoji instead of the graph
+    st.warning("Please upload your Excel files. Default data is being used.")
     fig, ax = plt.subplots(figsize=(10, 8))
-    ax.text(0.5, 0.5, "😞\nVeuillez télécharger les fichiers Excel", fontsize=30, ha='center', va='center')
-    ax.axis('off')  # Désactiver les axes
+    ax.text(0.5, 0.5, "\ud83d\ude1e\nPlease upload Excel files", fontsize=30, ha='center', va='center')
+    ax.axis('off')  # Disable axes
     st.pyplot(fig)
 
-# Essayer de tracer les courbes d'absorption
+# Try plotting the absorption curves
 try:
     if uploaded_file_1 and uploaded_file_2:
         fig, ax = plt.subplots(figsize=(10, 8))
 
-        # Changer le fond du graphique
-        fig.patch.set_facecolor('#6f6f7f')  # Fond gris foncé
-        ax.set_facecolor('#3f3f4f')  # Fond gris foncé pour l'axe
-        ax.tick_params(axis='both', colors='white')  # Couleur des ticks en blanc
+        # Change the background color of the graph
+        fig.patch.set_facecolor('#6f6f7f')  # Dark gray background
+        ax.set_facecolor('#3f3f4f')  # Dark gray axis background
+        ax.tick_params(axis='both', colors='white')  # White tick color
 
-        # Tracer les courbes
+        # Plot the curves
         ax.plot(frequencies_1, absorption_curve_1, label=file_name_1, color="b", marker="o", markersize=6)
         ax.plot(frequencies_2, absorption_curve_2, label=file_name_2, color="r", marker="x", markersize=6)
 
-        # Ajouter un titre et labels
-        ax.set_title(f"Courbes d'absorption pour épaisseur {thickness_selected} mm et densité {density_selected} kg/m³", color='white')
-        ax.set_xlabel("Fréquence (Hz)", color='white')
-        ax.set_ylabel("Absorption acoustique", color='white')
+        # Add a title and labels
+        ax.set_title(f"Absorption Curves for Thickness {thickness_selected} mm and Density {density_selected} kg/m³", color='white')
+        ax.set_xlabel("Frequency (Hz)", color='white')
+        ax.set_ylabel("Acoustic Absorption", color='white')
         ax.legend()
 
-        # Activer une grille
+        # Enable grid
         ax.grid(True, linestyle="--", color='white', alpha=0.6)
 
-        # Affichage du graphique dans Streamlit
+        # Display the graph in Streamlit
         st.pyplot(fig)
 
 except ValueError as e:
-    # Gérer l'erreur sans l'afficher de façon intrusif
+    # Handle the error without displaying it intrusively
     st.markdown(
-        f'<p style="position: fixed; bottom: 10px; right: 10px; font-size: 12px; color: red;">Erreur de dimension : {str(e)}</p>',
+        f'<p style="position: fixed; bottom: 10px; right: 10px; font-size: 12px; color: red;">Dimension error: {str(e)}</p>',
         unsafe_allow_html=True
     )
 
-# Fonction pour enregistrer le graphique en PDF
+# Function to save the graph as a PDF
 def save_as_pdf(fig):
     """
-    Sauvegarde le graphique actuel en PDF et le renvoie sous forme de fichier téléchargeable.
+    Save the current graph as a PDF and return it as a downloadable file.
     """
     pdf_buffer = BytesIO()
     fig.savefig(pdf_buffer, format="pdf")
     pdf_buffer.seek(0)
     return pdf_buffer
 
-# Ajouter un bouton de téléchargement
+# Add a download button
 st.download_button(
-    label="Télécharger la comparaison en PDF",
+    label="Download Comparison as PDF",
     data=save_as_pdf(fig),
-    file_name="comparaison_acoustique.pdf",
+    file_name="acoustic_comparison.pdf",
     mime="application/pdf"
 )
